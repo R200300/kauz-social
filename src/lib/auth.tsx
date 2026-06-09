@@ -1,10 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,7 +11,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-/** Make sure a profile row exists for the signed-in user (covers OAuth signups). */
 async function ensureProfile(user: User) {
   const { data: existing } = await supabase
     .from("profiles")
@@ -51,7 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Register listener first, then check the current session.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -59,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
 
       if (event === "SIGNED_IN" && nextSession?.user) {
-        // Defer Supabase calls out of the callback to avoid deadlocks.
         setTimeout(() => {
           ensureProfile(nextSession.user).catch(() => {});
         }, 0);
