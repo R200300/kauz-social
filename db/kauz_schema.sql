@@ -234,6 +234,7 @@ create policy "Users can update own notifications"
 create policy "Users can delete own notifications"
   on public.notifications for delete to authenticated
   using (auth.uid() = user_id);
+-- Inserts handled by service_role (server-side) — no anon/authenticated insert policy.
 
 -- =========================================================
 -- SAVED POSTS
