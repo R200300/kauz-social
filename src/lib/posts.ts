@@ -46,7 +46,6 @@ function normalize(row: RawPost): Omit<DbPost, "liked" | "saved"> {
   return { ...row, author };
 }
 
-/** Attach the current user's liked/saved state to a list of posts. */
 async function enrich(
   rows: Array<Omit<DbPost, "liked" | "saved">>,
   userId: string | null,
@@ -64,7 +63,6 @@ async function enrich(
   return rows.map((r) => ({ ...r, liked: likedSet.has(r.id), saved: savedSet.has(r.id) }));
 }
 
-/** Home feed: posts from people the user follows + their own posts. */
 export async function fetchFollowingFeed(userId: string, page: number): Promise<DbPost[]> {
   const { data: follows } = await supabase
     .from("follows")
@@ -84,7 +82,6 @@ export async function fetchFollowingFeed(userId: string, page: number): Promise<
   return enrich((data ?? []).map((r) => normalize(r as RawPost)), userId);
 }
 
-/** Explore: all posts ordered by popularity then recency. */
 export async function fetchExploreFeed(userId: string | null, page: number): Promise<DbPost[]> {
   const from = page * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
@@ -126,7 +123,6 @@ export async function fetchSavedPosts(userId: string): Promise<DbPost[]> {
   const { data, error } = await supabase.from("posts").select(POST_SELECT).in("id", ids);
   if (error) throw error;
   const rows = (data ?? []).map((r) => normalize(r as RawPost));
-  // preserve saved order
   rows.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
   return enrich(rows, userId);
 }
@@ -173,11 +169,7 @@ export async function addComment(postId: string, userId: string, content: string
   if (error) throw error;
 }
 
-export async function createPost(
-  userId: string,
-  file: File,
-  caption: string,
-): Promise<DbPost> {
+export async function createPost(userId: string, file: File, caption: string): Promise<DbPost> {
   const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
   const path = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
@@ -187,9 +179,7 @@ export async function createPost(
   });
   if (upErr) throw upErr;
 
-  const {
-    data: { publicUrl },
-  } = supabase.storage.from("posts").getPublicUrl(path);
+  const { data: { publicUrl } } = supabase.storage.from("posts").getPublicUrl(path);
 
   const { data, error } = await supabase
     .from("posts")
@@ -202,7 +192,6 @@ export async function createPost(
 }
 
 export async function deletePost(post: DbPost): Promise<void> {
-  // remove the stored image first (best-effort)
   if (post.image_url) {
     const marker = "/posts/";
     const idx = post.image_url.indexOf(marker);
