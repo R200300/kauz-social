@@ -1,50 +1,37 @@
-import * as React from "react"
-import { GripVertical } from "lucide-react"
+import { GripVertical } from "lucide-react";
+import { Group, Panel, Separator } from "react-resizable-panels";
 
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
-const Resizable = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-  <div className={cn("flex", className)} {...props} />
-)
-Resizable.displayName = "Resizable"
-
-const ResizablePanel = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & {
-    defaultSize?: number
-    minSize?: number
-    maxSize?: number
-  }
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("flex-1 overflow-auto", className)}
+const ResizablePanelGroup = ({ className, ...props }: React.ComponentProps<typeof Group>) => (
+  <Group
+    className={cn("flex h-full w-full data-[panel-group-direction=vertical]:flex-col", className)}
     {...props}
   />
-))
-ResizablePanel.displayName = "ResizablePanel"
+);
 
-const ResizableHandle = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement> & {
-    withHandle?: boolean
-  }
->(({ className, withHandle, ...props }, ref) => (
-  <div
-    ref={ref}
+const ResizablePanel = Panel;
+
+const ResizableHandle = ({
+  withHandle,
+  className,
+  ...props
+}: React.ComponentProps<typeof Separator> & {
+  withHandle?: boolean;
+}) => (
+  <Separator
     className={cn(
-      "relative flex w-px select-none touch-none bg-border after:absolute after:left-1/2 after:top-1/2 after:h-8 after:w-1 after:-translate-x-1/2 after:-translate-y-1/2 hover:after:bg-border focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring data-[state=dragging]:after:bg-border",
+      "relative flex w-px items-center justify-center bg-border after:absolute after:inset-y-0 after:left-1/2 after:w-1 after:-translate-x-1/2 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-1 data-[panel-group-direction=vertical]:h-px data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:after:left-0 data-[panel-group-direction=vertical]:after:h-1 data-[panel-group-direction=vertical]:after:w-full data-[panel-group-direction=vertical]:after:-translate-y-1/2 data-[panel-group-direction=vertical]:after:translate-x-0 [&[data-panel-group-direction=vertical]>div]:rotate-90",
       className,
     )}
     {...props}
   >
     {withHandle && (
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-        <GripVertical className="h-4 w-4 text-border" />
+      <div className="z-10 flex h-4 w-3 items-center justify-center rounded-sm border bg-border">
+        <GripVertical className="h-2.5 w-2.5" />
       </div>
     )}
-  </div>
-))
-ResizableHandle.displayName = "ResizableHandle"
+  </Separator>
+);
 
-export { Resizable, ResizablePanel, ResizableHandle }
+export { ResizablePanelGroup, ResizablePanel, ResizableHandle };
