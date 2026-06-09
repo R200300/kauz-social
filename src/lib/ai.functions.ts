@@ -1,35 +1,52 @@
-import Anthropic from "@anthropic-ai/sdk";
+// =========================================================
+// AI Gateway helpers (client-side wrappers for Supabase Edge Functions)
+// For a SPA deployment, AI functions run as Supabase Edge Functions
+// to protect the LOVABLE_API_KEY. These wrappers call those functions.
+// =========================================================
 
-const client = new Anthropic();
+import { supabase } from "@/integrations/supabase/client";
 
-export async function generateCaption(imageUrl: string): Promise<string> {
-  const message = await client.messages.create({
-    model: "claude-3-5-sonnet-20241022",
-    max_tokens: 150,
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "url",
-              url: imageUrl,
-            },
-          },
-          {
-            type: "text",
-            text: "Write a short, engaging Instagram-style caption for this image. Keep it under 150 characters. Be casual and fun.",
-          },
-        ],
-      },
-    ],
+type CaptionResult = { captions: string[] };
+type ModerationResult = { flagged: boolean; severe: boolean; reason: string };
+type SuggestionsResult = { suggestions: string[] };
+type InsightResult = { insight: string };
+
+/** Generate Instagram-style captions for an image via Edge Function. */
+export async function generateCaptions(input: { data: { imageDataUrl: string } }): Promise<CaptionResult> {
+  const { data, error } = await supabase.functions.invoke<CaptionResult>("ai-caption", {
+    body: { imageDataUrl: input.data.imageDataUrl },
   });
+  if (error) throw new Error(error.message || "AI caption failed");
+  return data ?? { captions: [] };
+}
 
-  const content = message.content[0];
-  if (content.type === "text") {
-    return content.text;
-  }
+/** Moderate an image for unsafe content via Edge Function. */
+export async function moderateImage(input: { data: { imageDataUrl: string } }): Promise<ModerationResult> {
+  const { data, error } = await supabase.functions.invoke<ModerationResult>("ai-moderate", {
+    body: { imageDataUrl: input.data.imageDataUrl },
+  });
+  if (error) throw new Error(error.message || "Moderation failed");
+  return data ?? { flagged: false, severe: false, reason: "" };
+}
 
-  return "Check out this amazing moment ✨";
+/** Get personalized search suggestions via Edge Function. */
+export async function smartSearchSuggestions(input: { data: { recent?: string[] } }): Promise<SuggestionsResult> {
+  const { data, error } = await supabase.functions.invoke<SuggestionsResult>("ai-search-suggestions", {
+    body: { recent: input.data.recent ?? [] },
+  });
+  if (error) throw new Error(error.message || "Suggestions failed");
+  return data ?? { suggestions: [] };
+}
+
+/** Generate an AI insight about user activity via Edge Function. */
+export async function generateInsight(input: { data: { postsCount: number; followersCount: number; totalLikes: number } }): Promise<InsightResult> {
+  const { data, error } = await supabase.functions.invoke<InsightResult>("ai-insight", {
+    body: {
+      postsCount: input.data.postsCount,
+      followersCount: input.data.followersCount,
+      totalLikes: input.data.totalLikes,
+    },
+  });
+  if (error) throw new Error(error.message || "Insight generation failed");
+  return data ?? { insight: "" };
 }
