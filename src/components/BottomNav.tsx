@@ -1,49 +1,49 @@
-import { NavLink, useLocation } from "react-router-dom";
-import { Home, Compass, Plus, Clapperboard, Heart, MessageCircle } from "lucide-react";
-import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
+import { Home, Compass, PlusSquare, Clapperboard, User } from "lucide-react";
+
+const items = [
+  { to: "/feed", icon: Home, label: "Home" },
+  { to: "/explore", icon: Compass, label: "Explore" },
+  { to: "/create", icon: PlusSquare, label: "Create" },
+  { to: "/reels", icon: Clapperboard, label: "Reels" },
+  { to: "/profile", icon: User, label: "Profile" },
+] as const;
 
 export function BottomNav() {
-  const { user } = useAuth();
   const { pathname } = useLocation();
-  const [unread, setUnread] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    const channel = supabase.channel(`user-notifications:${user.id}`).on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-      () => setUnread(true),
-    ).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
-
-  const isActive = (path: string) => pathname === path;
-
   return (
-    <nav className="fixed bottom-0 left-0 right-0 border-t bg-background z-40">
-      <div className="flex justify-around items-center h-16">
-        <NavLink to="/" className={`p-2 flex items-center justify-center ${isActive('/') ? 'text-foreground' : 'text-muted-foreground'}`}>
-          <Home size={24} />
-        </NavLink>
-        <NavLink to="/explore" className={`p-2 flex items-center justify-center ${isActive('/explore') ? 'text-foreground' : 'text-muted-foreground'}`}>
-          <Compass size={24} />
-        </NavLink>
-        <NavLink to="/create" className={`p-2 flex items-center justify-center ${isActive('/create') ? 'text-foreground' : 'text-muted-foreground'}`}>
-          <Plus size={24} />
-        </NavLink>
-        <NavLink to="/reels" className={`p-2 flex items-center justify-center ${isActive('/reels') ? 'text-foreground' : 'text-muted-foreground'}`}>
-          <Clapperboard size={24} />
-        </NavLink>
-        <NavLink to="/notifications" className={`p-2 flex items-center justify-center relative ${isActive('/notifications') ? 'text-foreground' : 'text-muted-foreground'}`}>
-          <Heart size={24} />
-          {unread && <span className="absolute w-2 h-2 bg-red-500 rounded-full top-1 right-1" />}
-        </NavLink>
-        <NavLink to="/messages" className={`p-2 flex items-center justify-center ${isActive('/messages') ? 'text-foreground' : 'text-muted-foreground'}`}>
-          <MessageCircle size={24} />
-        </NavLink>
-      </div>
+    <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-border/60 bg-background/85 backdrop-blur-xl">
+      <ul className="mx-auto flex max-w-md items-center justify-around px-2 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2">
+        {items.map(({ to, icon: Icon, label }) => {
+          const active = pathname === to;
+          const isCreate = to === "/create";
+          return (
+            <li key={to}>
+              <Link
+                to={to}
+                className="group tap-pulse flex flex-col items-center gap-1 px-3 py-1.5"
+                aria-label={label}
+              >
+                {isCreate ? (
+                  <span className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-primary shadow-glow-sm transition-transform group-active:scale-95">
+                    <Icon className="h-5 w-5 text-primary-foreground" strokeWidth={2.4} />
+                  </span>
+                ) : (
+                  <Icon
+                    className={`h-6 w-6 transition-all duration-200 ${active ? "scale-110 text-primary drop-shadow-[0_0_8px_oklch(0.58_0.24_295/0.7)]" : "text-muted-foreground group-hover:text-foreground"}`}
+                    strokeWidth={active ? 2.4 : 1.8}
+                  />
+                )}
+                {!isCreate && (
+                  <span
+                    className={`h-[3px] rounded-full transition-all duration-300 ${active ? "w-5 bg-gradient-primary shadow-glow-sm" : "w-0 bg-transparent"}`}
+                  />
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
     </nav>
   );
 }
