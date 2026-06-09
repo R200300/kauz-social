@@ -139,7 +139,7 @@ export function CommentSheet({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && submit()}
-            placeholder={userId ? "Add a comment…" : "Log in to comment"}
+            placeholder={userId ? "Add a comment..." : "Log in to comment"}
             disabled={!userId || sending}
             className="flex-1 rounded-full border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-primary placeholder:text-muted-foreground disabled:opacity-60"
           />

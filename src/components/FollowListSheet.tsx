@@ -102,7 +102,11 @@ export function FollowListSheet({
                   <button
                     onClick={() => toggle(u)}
                     disabled={busy === u.id}
-                    className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${u.isFollowing ? "border border-border bg-surface text-foreground" : "bg-gradient-primary text-primary-foreground shadow-glow-sm"}`}
+                    className={`flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold transition disabled:opacity-60 ${
+                      u.isFollowing
+                        ? "border border-border bg-surface text-foreground"
+                        : "bg-gradient-primary text-primary-foreground shadow-glow-sm"
+                    }`}
                   >
                     {u.isFollowing ? (
                       <>

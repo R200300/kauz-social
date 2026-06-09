@@ -129,7 +129,7 @@ export function PostCard({
           <img src={avatar} alt={name} className="h-10 w-10 rounded-full ring-2 ring-primary/60 object-cover" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{name}</p>
-            <p className="truncate text-xs text-muted-foreground">@{handle} · {timeAgo(post.created_at)}</p>
+            <p className="truncate text-xs text-muted-foreground">@{handle} - {timeAgo(post.created_at)}</p>
           </div>
         </Link>
         {isOwner && (

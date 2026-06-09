@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Settings, Grid3x3, Clapperboard, Bookmark, Tag, Link as LinkIcon, UserCheck, UserPlus, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -234,7 +234,7 @@ export function ProfileView({ profileId, isOwn }: { profileId: string; isOwn: bo
       </div>
 
       {tab === "posts" && (
-        <PostGrid posts={posts} emptyText={isOwn ? "No posts yet — share your first ✨" : "No posts yet."} />
+        <PostGrid posts={posts} emptyText={isOwn ? "No posts yet - share your first ✨" : "No posts yet."} />
       )}
       {tab === "saved" && isOwn && (
         loadingSaved ? (
@@ -275,5 +275,3 @@ function PostGrid({ posts, emptyText }: { posts: DbPost[]; emptyText: string }) 
     </div>
   );
 }
-
-import { useNavigate } from "react-router-dom";
