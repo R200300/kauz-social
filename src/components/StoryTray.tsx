@@ -1,88 +1,126 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
-import { fetchStories, type Story } from "@/lib/stories";
 import { useAuth } from "@/lib/auth";
-import { Spinner } from "@/components/Spinner";
+import { fetchStoryTray, type StoryGroup } from "@/lib/stories";
 import { StoryViewer } from "@/components/StoryViewer";
 import { CreateStorySheet } from "@/components/CreateStorySheet";
 
-export function StoryTray({ onStoriesLoaded }: { onStoriesLoaded?: () => void }) {
+export function StoryTray() {
   const { user } = useAuth();
-  const [stories, setStories] = useState<Story[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [viewing, setViewing] = useState<Story | null>(null);
+  const userId = user?.id ?? null;
+
+  const [groups, setGroups] = useState<StoryGroup[]>([]);
+  const [openAt, setOpenAt] = useState<number | null>(null);
   const [creating, setCreating] = useState(false);
 
+  const load = () => {
+    if (!userId) return;
+    fetchStoryTray(userId)
+      .then(setGroups)
+      .catch(() => {});
+  };
+
   useEffect(() => {
-    let active = true;
-    fetchStories(user?.id)
-      .then((rows) => {
-        if (active) {
-          setStories(rows);
-          onStoriesLoaded?.();
-        }
-      })
-      .catch(() => {})
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [user?.id, onStoriesLoaded]);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
-  if (loading) {
-    return (
-      <div className="scrollbar-hide flex gap-3 overflow-x-auto px-3 py-3">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-20 w-16 shrink-0 rounded-xl skeleton-shimmer" />
-        ))}
-      </div>
-    );
+  if (!userId) return null;
+
+  const ownGroup = groups.find((g) => g.author.id === userId) ?? null;
+  const otherGroups = groups.filter((g) => g.author.id !== userId);
+  const ownAvatar =
+    ownGroup?.author.avatar_url ||
+    (user?.user_metadata?.avatar_url as string | undefined) ||
+    `https://i.pravatar.cc/200?u=${userId}`;
+
+  function openGroup(g: StoryGroup) {
+    const idx = groups.findIndex((x) => x.author.id === g.author.id);
+    if (idx >= 0) setOpenAt(idx);
   }
 
-  if (stories.length === 0) {
-    return null;
-  }
+  // Ring "seen" state is reconciled from the server when the viewer closes.
+  function markGroupSeen(_storyId: string) {}
 
   return (
     <>
-      <div className="scrollbar-hide flex gap-3 overflow-x-auto px-3 py-3">
-        {stories.map((story) => (
-          <button
-            key={story.id}
-            onClick={() => setViewing(story)}
-            className="group relative h-20 w-16 shrink-0 overflow-hidden rounded-xl"
-          >
-            <img src={story.image_url} alt="Story" className="h-full w-full object-cover" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition" />
-            {story.user && (
-              <div className="absolute bottom-1 left-1 h-6 w-6 rounded-full ring-2 ring-primary overflow-hidden">
-                <img src={story.user.avatar_url} alt="" className="h-full w-full object-cover" />
-              </div>
+      <section className="scrollbar-hide flex gap-4 overflow-x-auto px-4 py-4">
+        {/* Your story */}
+        <button
+          onClick={() => (ownGroup ? openGroup(ownGroup) : setCreating(true))}
+          className="tap-pulse flex w-16 shrink-0 flex-col items-center gap-1.5"
+        >
+          <span className="relative block h-16 w-16">
+            {ownGroup ? (
+              <span className={ringClass(ownGroup.allSeen)}>
+                <img src={ownAvatar} alt="" className="h-full w-full rounded-full border-2 border-background object-cover" />
+              </span>
+            ) : (
+              <img src={ownAvatar} alt="" className="h-full w-full rounded-full border-2 border-border object-cover" />
             )}
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                setCreating(true);
+              }}
+              className="absolute -bottom-0.5 -right-0.5 grid h-6 w-6 place-items-center rounded-full border-2 border-background bg-gradient-primary text-primary-foreground"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </span>
+          </span>
+          <span className="w-full truncate text-center text-[11px] text-muted-foreground">Your story</span>
+        </button>
+
+        {/* Followed users' stories */}
+        {otherGroups.map((g) => (
+          <button
+            key={g.author.id}
+            onClick={() => openGroup(g)}
+            className="tap-pulse flex w-16 shrink-0 flex-col items-center gap-1.5"
+          >
+            <span className={ringClass(g.allSeen)}>
+              <img
+                src={g.author.avatar_url || `https://i.pravatar.cc/200?u=${g.author.id}`}
+                alt={g.author.username ?? ""}
+                className="h-full w-full rounded-full border-2 border-background object-cover"
+              />
+            </span>
+            <span className="w-full truncate text-center text-[11px] text-muted-foreground">
+              {g.author.username || g.author.full_name || "user"}
+            </span>
           </button>
         ))}
-        {user && (
-          <button
-            onClick={() => setCreating(true)}
-            className="flex h-20 w-16 shrink-0 items-center justify-center rounded-xl border-2 border-dashed border-primary"
-          >
-            <Plus size={20} className="text-primary" />
-          </button>
-        )}
-      </div>
-      {viewing && <StoryViewer story={viewing} onClose={() => setViewing(null)} />}
+      </section>
+
+      {openAt !== null && (
+        <StoryViewer
+          groups={groups}
+          startGroup={openAt}
+          userId={userId}
+          onClose={() => {
+            setOpenAt(null);
+            load();
+          }}
+          onSeen={markGroupSeen}
+        />
+      )}
+
       {creating && (
         <CreateStorySheet
-          open={creating}
+          userId={userId}
           onClose={() => setCreating(false)}
-          onStoryCreated={() => {
+          onCreated={() => {
             setCreating(false);
-            fetchStories(user?.id)
-              .then(setStories)
-              .catch(() => {});
+            load();
           }}
         />
       )}
     </>
   );
+}
+
+function ringClass(seen: boolean): string {
+  return seen
+    ? "block h-16 w-16 rounded-full bg-muted p-[2px]"
+    : "block h-16 w-16 rounded-full bg-gradient-primary p-[2px] shadow-glow-sm";
 }

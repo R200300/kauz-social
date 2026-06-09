@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Settings, Grid3x3, Clapperboard, Bookmark, Tag, Link as LinkIcon, UserCheck, UserPlus, MessageCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
@@ -51,6 +51,7 @@ export function ProfileView({ profileId, isOwn }: { profileId: string; isOwn: bo
       .then((p) => active && setProfile(p))
       .catch(() => {})
       .finally(() => active && setLoading(false));
+    // Authoritative counts from source tables (cached columns may be stale).
     fetchProfileStats(profileId)
       .then((stats) => active && setProfile((p) => (p ? { ...p, ...stats } : p)))
       .catch(() => {});
@@ -191,7 +192,11 @@ export function ProfileView({ profileId, isOwn }: { profileId: string; isOwn: bo
               <button
                 onClick={toggleFollow}
                 disabled={followBusy || !currentUserId}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 text-sm font-semibold transition disabled:opacity-60 ${following ? "border border-border bg-surface text-foreground" : "bg-gradient-primary text-primary-foreground shadow-glow-sm"}`}
+                className={`flex flex-1 items-center justify-center gap-1.5 rounded-2xl py-2.5 text-sm font-semibold transition disabled:opacity-60 ${
+                  following
+                    ? "border border-border bg-surface text-foreground"
+                    : "bg-gradient-primary text-primary-foreground shadow-glow-sm"
+                }`}
               >
                 {following ? (
                   <>
@@ -270,3 +275,5 @@ function PostGrid({ posts, emptyText }: { posts: DbPost[]; emptyText: string }) 
     </div>
   );
 }
+
+import { useNavigate } from "react-router-dom";

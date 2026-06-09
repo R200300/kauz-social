@@ -69,61 +69,87 @@ export function CommentSheet({
 
   useEffect(() => {
     listEnd.current?.scrollIntoView({ behavior: "smooth" });
-  }, [comments]);
+  }, [comments.length]);
 
-  const handleSend = async () => {
-    if (!text.trim() || !userId) return;
+  async function submit() {
+    const value = text.trim();
+    if (!value || !userId || sending) return;
     setSending(true);
+    setText("");
     try {
-      await addComment(postId, userId, text);
-      setText("");
+      await addComment(postId, userId, value);
       onCommentAdded?.();
+      const rows = await fetchComments(postId);
+      setComments(rows);
+    } catch {
+      setText(value);
     } finally {
       setSending(false);
     }
-  };
+  }
+
+  if (!open) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 transition-all ${open ? "opacity-100 visible" : "opacity-0 invisible"}`} onClick={onClose}>
-      <div className="absolute inset-0 bg-black/50" />
-      <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl max-h-[80vh] flex flex-col animate-in slide-in-from-bottom" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Comments</h2>
-          <button onClick={onClose} className="text-muted-foreground"><X size={20} /></button>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex h-[75svh] w-full max-w-md flex-col rounded-t-3xl border border-primary/20 bg-card shadow-glow animate-slide-up"
+      >
+        <div className="flex items-center justify-between border-b border-border/60 px-5 py-3.5">
+          <h3 className="font-display text-base font-semibold">Comments</h3>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full hover:bg-surface" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+
+        <div className="flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {loading ? (
-            <div className="flex justify-center py-8"><Spinner /></div>
+            <div className="grid place-items-center py-10">
+              <Spinner size={28} />
+            </div>
           ) : comments.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">No comments yet</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">No comments yet. Be the first ✨</p>
           ) : (
             comments.map((c) => (
               <div key={c.id} className="flex gap-3">
-                <img src={c.author?.avatar_url} alt="" className="w-8 h-8 rounded-full" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm">{c.author?.username}</p>
-                    <p className="text-xs text-muted-foreground">{timeAgo(c.created_at)}</p>
-                  </div>
-                  <p className="text-sm text-foreground break-words">{c.text}</p>
+                <img
+                  src={c.author?.avatar_url ?? `https://i.pravatar.cc/100?u=${c.user_id}`}
+                  alt=""
+                  className="h-9 w-9 shrink-0 rounded-full ring-1 ring-primary/40"
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm">
+                    <span className="font-semibold">@{c.author?.username ?? "user"}</span>{" "}
+                    <span className="text-muted-foreground">{timeAgo(c.created_at)}</span>
+                  </p>
+                  <p className="text-sm leading-relaxed">{c.content}</p>
                 </div>
               </div>
             ))
           )}
           <div ref={listEnd} />
         </div>
-        <div className="border-t p-4 flex gap-2">
+
+        <div className="flex items-center gap-2 border-t border-border/60 p-3">
           <input
-            type="text"
-            placeholder="Add a comment..."
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && handleSend()}
-            className="flex-1 bg-muted rounded-full px-4 py-2 text-sm outline-none"
-            disabled={sending}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            placeholder={userId ? "Add a comment…" : "Log in to comment"}
+            disabled={!userId || sending}
+            className="flex-1 rounded-full border border-border bg-surface px-4 py-2.5 text-sm outline-none focus:border-primary placeholder:text-muted-foreground disabled:opacity-60"
           />
-          <button onClick={handleSend} disabled={!text.trim() || sending} className="text-primary disabled:text-muted-foreground">
-            <Send size={20} />
+          <button
+            onClick={submit}
+            disabled={!text.trim() || sending || !userId}
+            className="tap-pulse grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-primary text-primary-foreground shadow-glow-sm disabled:opacity-50"
+            aria-label="Send"
+          >
+            {sending ? <Spinner size={16} /> : <Send className="h-4 w-4" />}
           </button>
         </div>
       </div>
