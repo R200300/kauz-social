@@ -101,7 +101,7 @@ export function CreateStorySheet({
               value={text}
               onChange={(e) => setText(e.target.value)}
               maxLength={120}
-              placeholder="Add a text overlay…"
+              placeholder="Add a text overlay..."
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
             />
           </label>
