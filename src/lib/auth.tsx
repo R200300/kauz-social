@@ -1,49 +1,16 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-interface AuthContextValue {
-  session: Session | null;
-  user: User | null;
-  loading: boolean;
-  signOut: () => Promise<void>;
-}
-
+interface AuthContextValue { session: Session | null; user: User | null; loading: boolean; signOut: () => Promise<void>; }
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-/** Make sure a profile row exists for the signed-in user (covers OAuth signups). */
 async function ensureProfile(user: User) {
-  const { data: existing } = await supabase
-    .from("profiles")
-    .select("id")
-    .eq("id", user.id)
-    .maybeSingle();
-
+  const { data: existing } = await supabase.from("profiles").select("id").eq("id", user.id).maybeSingle();
   if (existing) return;
-
   const meta = user.user_metadata ?? {};
-  const fallbackUsername =
-    (meta.username as string | undefined) ??
-    (user.email ? user.email.split("@")[0] : `user_${user.id.slice(0, 8)}`);
-
-  await supabase.from("profiles").insert({
-    id: user.id,
-    username: fallbackUsername,
-    full_name:
-      (meta.full_name as string | undefined) ??
-      (meta.name as string | undefined) ??
-      null,
-    avatar_url:
-      (meta.avatar_url as string | undefined) ??
-      (meta.picture as string | undefined) ??
-      null,
-  });
+  const fallbackUsername = (meta.username as string | undefined) ?? (user.email ? user.email.split("@")[0] : `user_${user.id.slice(0, 8)}`);
+  await supabase.from("profiles").insert({ id: user.id, username: fallbackUsername, full_name: (meta.full_name as string | undefined) ?? (meta.name as string | undefined) ?? null, avatar_url: (meta.avatar_url as string | undefined) ?? (meta.picture as string | undefined) ?? null });
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -51,40 +18,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Register listener first, then check the current session.
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      setSession(nextSession);
-      setLoading(false);
-
-      if (event === "SIGNED_IN" && nextSession?.user) {
-        // Defer Supabase calls out of the callback to avoid deadlocks.
-        setTimeout(() => {
-          ensureProfile(nextSession.user).catch(() => {});
-        }, 0);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      setSession(nextSession); setLoading(false);
+      if (event === "SIGNED_IN" && nextSession?.user) { setTimeout(() => { ensureProfile(nextSession.user).catch(() => {}); }, 0); }
     });
-
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
-
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false); });
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{ session, user: session?.user ?? null, loading, signOut }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const signOut = async () => { await supabase.auth.signOut(); };
+  return <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
